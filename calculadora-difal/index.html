@@ -176,7 +176,9 @@ details > summary { cursor: pointer; padding: 14px 16px; font-family: var(--font
 .dare .btn { display: inline-block; text-decoration: none; }
 .dados-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
 .dados-form label { display: grid; gap: 4px; font-size: 0.82rem; }
-.dados-form input { padding: 6px 8px; min-width: 160px; }
+.dados-form input, .dados-form select { padding: 6px 8px; min-width: 160px; font: inherit; }
+.form-tit { margin: 4px 0 -4px; font-size: 0.88rem; }
+.form-esc summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
 @media (max-width: 560px) { .dare-lin { grid-template-columns: minmax(0, 1fr) auto; } .dare-lin .rot { grid-column: 1 / -1; } }
 .srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding: 10px 16px; border-top: 1px solid var(--line); align-items: start; }
 .srow .info { min-width: 0; overflow-wrap: anywhere; }
@@ -551,6 +553,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       numero: txt(ide, "nNF"), emitente: txt(emit, "xNome"), ufEmit, ufDest,
       destCnpj: (txt(dest, "CNPJ") || txt(dest, "CPF")).replace(/\D/g, ""), destNome: txt(dest, "xNome"),
       destIE: txt(dest, "IE"), destCMun: txt(first(dest, "enderDest"), "cMun"), xml: xmlText,
+      destEnd: (() => { const e = first(dest, "enderDest"); return { end: txt(e, "xLgr"), num: txt(e, "nro"), compl: txt(e, "xCpl"), bairro: txt(e, "xBairro"), cep: txt(e, "CEP"), fone: txt(e, "fone"), email: txt(dest, "email") }; })(),
       data: isoToDate(txt(ide, "dhEmi") || txt(ide, "dEmi")),
       finalidade: txt(ide, "indFinal") === "1" ? "uso" : "revenda", items,
       avisos: [], usoMotivo: txt(ide, "indFinal") === "1" ? 'no XML o fornecedor marcou a venda como "consumidor final" (indFinal = 1)' : "",
@@ -1513,7 +1516,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const d = dateToIso(n.data);
     return {
       numero: n.numero || "", chave: n.chave || "", emitente: n.emitente || "", ufEmit: n.ufEmit || "",
-      destCnpj: n.destCnpj, destNome: n.destNome || "", destIE: n.destIE || "", destCMun: n.destCMun || "", fonte: n.fonte || (n.chave ? "xml" : "manual"),
+      destCnpj: n.destCnpj, destNome: n.destNome || "", destIE: n.destIE || "", destCMun: n.destCMun || "", destEnd: n.destEnd || null, fonte: n.fonte || (n.chave ? "xml" : "manual"),
       xml: n.xml && n.xml.length < 600000 ? n.xml : "",
       data: d, mes: d ? d.slice(0, 7) : "", vencimento: dateToIso(vencimento(n.data)),
       finalidade: n.finalidade, vNF: n.vNF == null ? null : n.vNF, vST: n.vST || 0, vII: n.vII || 0,
@@ -1525,7 +1528,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     return {
       id: uid(), saveId: id, savedCnpj: cnpj, salvo: true,
       numero: d.numero, chave: d.chave, emitente: d.emitente, ufEmit: d.ufEmit, destCnpj: d.destCnpj || cnpj, destNome: d.destNome,
-      destIE: d.destIE || "", destCMun: d.destCMun || "", xml: d.xml || "",
+      destIE: d.destIE || "", destCMun: d.destCMun || "", destEnd: d.destEnd || null, xml: d.xml || "",
       fonte: d.fonte === "pdf" ? "pdf" : undefined, data: isoToDate(d.data), finalidade: d.finalidade || "revenda",
       vNF: d.vNF == null ? null : d.vNF, vST: d.vST || 0, vII: d.vII || 0, avisos: (d.avisos || []).slice(),
       items: (d.items || []).map(it => mkItem(Object.assign({}, it)))
@@ -1543,11 +1546,11 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     let gravadas = 0;
     try {
       const emps = new Map();
-      ok.forEach(n => { const e = emps.get(n.destCnpj) || { nome: n.destNome, ie: "", cMun: "" }; e.nome = n.destNome; e.ie = e.ie || n.destIE || ""; e.cMun = e.cMun || n.destCMun || ""; emps.set(n.destCnpj, e); });
+      ok.forEach(n => { const e = emps.get(n.destCnpj) || { nome: n.destNome, ie: "", cMun: "", end: null }; e.nome = n.destNome; e.ie = e.ie || n.destIE || ""; e.cMun = e.cMun || n.destCMun || ""; e.end = e.end || (n.destEnd && n.destEnd.cep ? n.destEnd : null); emps.set(n.destCnpj, e); });
       for (const [cnpj, x] of emps) {
-        const atual = empresas.find(e => e.cnpj === cnpj);
-        const ie = (atual && atual.ie) || x.ie, cMun = (atual && atual.cMun) || x.cMun;
-        if (!atual || atual.nome !== x.nome || (atual.ie || "") !== ie || (atual.cMun || "") !== cMun) await db.doc("empresas/" + cnpj).set({ cnpj, nome: x.nome, ie, cMun, atualizadoEm: new Date().toISOString() });
+        const atual = empresas.find(e => e.cnpj === cnpj) || null;
+        const ie = (atual && atual.ie) || x.ie, cMun = (atual && atual.cMun) || x.cMun, end = (atual && atual.end) || x.end || null;
+        if (!atual || atual.nome !== x.nome || (atual.ie || "") !== ie || (atual.cMun || "") !== cMun || (!atual.end && end)) await db.doc("empresas/" + cnpj).set(Object.assign({}, atual || {}, { cnpj, nome: x.nome, ie, cMun, end, atualizadoEm: new Date().toISOString() }));
       }
       for (const n of ok) {
         const id = n.saveId || n.chave || novoId();
@@ -1675,15 +1678,24 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       const emp = empresas.find(x => x.cnpj === selCnpj); if (!emp) return;
       const lista = notasSalvas.filter(x => (x.d.mes || "") === m).map(x => deDoc(x.id, selCnpj, x.d));
       if (ds.salvaDados !== undefined) {
-        const ie = (document.getElementById("dIE").value || "").replace(/\D/g, ""), cMun = (document.getElementById("dMun").value || "").replace(/\D/g, "");
-        if (!ie || cMun.length !== 7) { document.getElementById("dMsg").hidden = false; return; }
+        const val = id => (document.getElementById(id).value || "").trim();
+        const novo = { ie: dig(val("dIE")), cMun: dig(val("dMun")),
+          resp: { nome: val("dRNome"), cpf: dig(val("dRCpf")), cod: val("dRCod") },
+          end: { cep: dig(val("dCep")), end: val("dEnd"), num: val("dNum"), compl: val("dCompl"), bairro: val("dBairro"), fone: val("dFone"), email: val("dEmail") } };
+        const falta = faltaDados(novo);
+        const msgEl = document.getElementById("dMsg");
+        if (falta.length) { msgEl.textContent = "Preencha: " + falta.join(", ") + "."; msgEl.hidden = false; return; }
+        const esc2 = { nome: val("oNome"), cpf: dig(val("oCpf")), crc: val("oCrc"), cnpj: dig(val("oCnpj")), cep: dig(val("oCep")), end: val("oEnd"), num: val("oNum"), compl: val("oCompl"), bairro: val("oBairro"), uf: "SP", cMun: dig(val("oMun")), fone: val("oFone"), email: val("oEmail") };
         b.disabled = true;
-        try { await db.doc("empresas/" + emp.cnpj).set(Object.assign({}, emp, { ie, cMun, atualizadoEm: new Date().toISOString() })); emp.ie = ie; emp.cMun = cMun; }
-        catch (err) { showMsg(["Não foi possível salvar os dados da empresa."]); b.disabled = false; return; }
+        try {
+          await db.doc("empresas/" + emp.cnpj).set(Object.assign({}, emp, novo, { atualizadoEm: new Date().toISOString() }));
+          Object.assign(emp, novo);
+          if (esc2.nome) { await db.doc("config/escritorio").set(esc2); escritorio = esc2; }
+        } catch (err) { showMsg(["Não foi possível salvar os dados da empresa."]); b.disabled = false; return; }
         pedeDados = null;
       }
       const dd = dadosEmp(emp, lista);
-      if (!dd.ie || dd.cMun.length !== 7) { pedeDados = m; renderSaved(); return; }
+      if (faltaDados(dd).length) { pedeDados = m; renderSaved(); return; }
       if (m === "") { showMsg(["Essas notas estão sem data de entrada. Abra na calculadora, coloque a data e salve de novo."]); return; }
       const r = linhasDestda(Object.assign({}, emp, dd), m, lista);
       const res = await baixarArquivo(new Blob([latin1(r.texto)], { type: "text/plain" }), `DeSTDA ${emp.cnpj} ${m.replace("-", "")}.txt`);
@@ -1842,9 +1854,12 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const L = [];
     L.push(["0000", "LFPD", ini, fim, limpa(emp.nome).slice(0, 255), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
     L.push(["0001", "0"]);
+    const e = emp.end || {}, r = emp.resp || {}, o = escritorio || {};
+    L.push(["0005", limpa(r.nome), r.cod || "205", dig(r.cpf), dig(e.cep), limpa(e.end), limpa(e.num), limpa(e.compl), limpa(e.bairro), "", "", dig(e.fone), "", limpa(e.email)]);
     /* o SEDIF-SN exige os campos 06 a 18 do 0030 vazios */
     L.push(["0030", "1", "7", "9", "9", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
-    L.push(["0990", "4"]);
+    if (o.nome) L.push(["0100", limpa(o.nome), "900", dig(o.cnpj), dig(o.cpf), limpa(o.crc), dig(o.cep), limpa(o.end), limpa(o.num), limpa(o.compl), limpa(o.bairro), o.uf || "SP", dig(o.cMun), "", "", dig(o.fone), "", limpa(o.email)]);
+    L.push(["0990", String(L.length + 1)]);
     /* regras do SEDIF-SN: G605 sempre 4 vezes (situações 0 a 3), um G620 e quatro G625 da UF (tipos 0 a 3);
        os campos "valor nas notas" ficam vazios e só o valor declarado é preenchido */
     const z = x => x > 0 ? x.toFixed(2).replace(".", ",") : "0,00";
@@ -1874,16 +1889,50 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
   /* ---------- dados do DARE ---------- */
   const DARE_URL = "https://www4.fazenda.sp.gov.br/DareICMS/DareAvulso";
   let dareAberto = null, pedeDados = null;
+  const COD_ASSIN = [["205", "Administrador (sócio-administrador)"], ["801", "Empresário"], ["203", "Diretor"], ["204", "Conselheiro de administração"], ["206", "Administrador de grupo"], ["207", "Administrador de sociedade filiada"], ["309", "Procurador"], ["313", "Liquidante"], ["999", "Outros"]];
   function formDados(emp, ns) {
-    const dd = dadosEmp(emp, ns);
+    const dd = dadosEmp(emp, ns), e = dd.end, r = dd.resp, o = Object.assign({ nome: "", cnpj: "", cpf: "", crc: "", cep: "", end: "", num: "", compl: "", bairro: "", uf: "SP", cMun: "", fone: "", email: "" }, escritorio);
+    const falta = faltaDados(dd);
+    const inp = (id, rot, v, extra = "") => `<label>${rot}<input id="${id}" value="${esc(v || "")}" ${extra}></label>`;
     return `<div class="dare">
-      <p class="dare-intro">Para gerar o arquivo da DeSTDA faltam dados de ${esc(emp.nome)}. Quando a nota vem do XML eles são pegos sozinhos; aqui é só uma vez por empresa.</p>
+      <p class="dare-intro">Para a DeSTDA o SEDIF pede os dados do contribuinte e do responsável (registro 0005)${falta.length ? `. Falta: ${esc(falta.join(", "))}` : ""}. O que veio do XML já está preenchido; é só uma vez por empresa.</p>
       <div class="dados-form">
-        <label>Inscrição estadual<input id="dIE" inputmode="numeric" value="${esc(dd.ie)}"></label>
-        <label>Código IBGE do município (7 números; Guarulhos é 3518800)<input id="dMun" inputmode="numeric" maxlength="7" value="${esc(dd.cMun)}"></label>
-        <button type="button" class="primary" data-salva-dados="${pedeDados}">Salvar e gerar o arquivo</button>
+        ${inp("dIE", "Inscrição estadual", dd.ie, 'inputmode="numeric"')}
+        ${inp("dMun", "Código IBGE do município (Guarulhos: 3518800)", dd.cMun, 'inputmode="numeric" maxlength="7"')}
       </div>
-      <p class="dare-nota" id="dMsg" hidden style="color:var(--warn)">Preencha a inscrição estadual e o código do município com 7 números.</p>
+      <h4 class="form-tit">Responsável pela empresa</h4>
+      <div class="dados-form">
+        ${inp("dRNome", "Nome", r.nome)}
+        ${inp("dRCpf", "CPF", r.cpf, 'inputmode="numeric"')}
+        <label>Qualificação<select id="dRCod">${COD_ASSIN.map(([c, t]) => `<option value="${c}"${c === r.cod ? " selected" : ""}>${c} - ${t}</option>`).join("")}</select></label>
+      </div>
+      <h4 class="form-tit">Endereço da empresa</h4>
+      <div class="dados-form">
+        ${inp("dCep", "CEP", e.cep, 'inputmode="numeric" maxlength="9"')}
+        ${inp("dEnd", "Logradouro", e.end)}
+        ${inp("dNum", "Número", e.num, 'style="min-width:70px;width:90px"')}
+        ${inp("dCompl", "Complemento", e.compl)}
+        ${inp("dBairro", "Bairro", e.bairro)}
+        ${inp("dFone", "Telefone", e.fone, 'inputmode="tel"')}
+        ${inp("dEmail", "E-mail", e.email, 'type="email"')}
+      </div>
+      <details class="form-esc"${escritorio.nome ? "" : " open"}><summary>Contador (registro 0100, vale para todas as empresas)</summary>
+      <div class="dados-form">
+        ${inp("oNome", "Nome do contador", o.nome)}
+        ${inp("oCpf", "CPF do contador", o.cpf, 'inputmode="numeric"')}
+        ${inp("oCrc", "CRC", o.crc)}
+        ${inp("oCnpj", "CNPJ do escritório", o.cnpj, 'inputmode="numeric"')}
+        ${inp("oCep", "CEP", o.cep, 'inputmode="numeric" maxlength="9"')}
+        ${inp("oEnd", "Logradouro", o.end)}
+        ${inp("oNum", "Número", o.num, 'style="min-width:70px;width:90px"')}
+        ${inp("oCompl", "Complemento", o.compl)}
+        ${inp("oBairro", "Bairro", o.bairro)}
+        ${inp("oMun", "Código IBGE do município", o.cMun, 'inputmode="numeric" maxlength="7"')}
+        ${inp("oFone", "Telefone", o.fone, 'inputmode="tel"')}
+        ${inp("oEmail", "E-mail", o.email, 'type="email"')}
+      </div></details>
+      <div class="row"><button type="button" class="primary" data-salva-dados="${pedeDados}">Salvar e gerar o arquivo</button></div>
+      <p class="dare-nota" id="dMsg" hidden style="color:var(--warn)"></p>
     </div>`;
   }
   function painelDare(emp, m, ns) {
@@ -1911,10 +1960,26 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       <div class="row"><a class="btn" href="${DARE_URL}" target="_blank" rel="noopener">Abrir o DARE na SEFAZ-SP</a></div>
     </div>`;
   }
+  const dig = s => String(s || "").replace(/\D/g, "");
   function dadosEmp(emp, ns) {
-    const n1 = ns.find(n => n.destIE) || {}, n2 = ns.find(n => n.destCMun) || {};
-    return { ie: String(emp.ie || n1.destIE || "").replace(/\D/g, ""), cMun: String(emp.cMun || n2.destCMun || "").replace(/\D/g, "") };
+    const n1 = ns.find(n => n.destIE) || {}, n2 = ns.find(n => n.destCMun) || {}, n3 = ns.find(n => n.destEnd && n.destEnd.cep) || {};
+    const end = Object.assign({ end: "", num: "", compl: "", bairro: "", cep: "", fone: "", email: "" }, n3.destEnd || {}, emp.end || {});
+    const resp = Object.assign({ nome: "", cpf: "", cod: "205" }, emp.resp || {});
+    return { ie: dig(emp.ie || n1.destIE), cMun: dig(emp.cMun || n2.destCMun), end, resp };
   }
+  function faltaDados(dd) {
+    const f = [];
+    if (!dd.ie) f.push("inscrição estadual");
+    if (dd.cMun.length !== 7) f.push("código do município");
+    if (!dd.resp.nome) f.push("nome do responsável");
+    if (dig(dd.resp.cpf).length !== 11) f.push("CPF do responsável");
+    if (dig(dd.end.cep).length !== 8 || /^0+$/.test(dig(dd.end.cep))) f.push("CEP");
+    if (!dd.end.end) f.push("endereço");
+    if (!dd.end.num) f.push("número");
+    if (!dd.end.bairro) f.push("bairro");
+    return f;
+  }
+  let escritorio = {};
 
   /* Banco local: usado quando a calculadora é aberta como arquivo no computador.
      Guarda os documentos no IndexedDB do navegador (ou no localStorage, se o IndexedDB falhar)
@@ -1979,7 +2044,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     };
     return {
       api,
-      exportar: () => { const o = {}; mem.forEach((v, k) => { if (k.startsWith("empresas/") || k.startsWith("ivas/") || k.startsWith("aliqs/")) o[k] = v; }); return o; },
+      exportar: () => { const o = {}; mem.forEach((v, k) => { if (k.startsWith("empresas/") || k.startsWith("ivas/") || k.startsWith("aliqs/") || k.startsWith("config/")) o[k] = v; }); return o; },
       importar: async obj => { try { await arm.putMuitos(obj); } catch (e) { throw falha(e); } Object.entries(obj).forEach(([k, v]) => mem.set(k, v)); avisa(null); }
     };
   }
@@ -1999,7 +2064,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
   });
   async function exportaNuvem(d) {
     const out = {};
-    for (const c of ["empresas", "ivas", "aliqs"]) Object.assign(out, await leColecao(d, c));
+    for (const c of ["empresas", "ivas", "aliqs", "config"]) Object.assign(out, await leColecao(d, c));
     for (const k of Object.keys(out).filter(k => /^empresas\/[^/]+$/.test(k))) Object.assign(out, await leColecao(d, k + "/notas"));
     return out;
   }
@@ -2029,7 +2094,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       const j = JSON.parse(await f.text());
       if (!j || j.app !== "calculadora-difal" || typeof j.docs !== "object") throw new Error("formato");
       const docs = {};
-      Object.entries(j.docs).forEach(([k, v]) => { if ((/^empresas\/[0-9]{11,14}(\/notas\/[A-Za-z0-9_\-.~:@+]{1,200})?$/.test(k) || /^(ivas|aliqs)\/[0-9]{2,10}$/.test(k)) && v && typeof v === "object") docs[k] = v; });
+      Object.entries(j.docs).forEach(([k, v]) => { if ((/^empresas\/[0-9]{11,14}(\/notas\/[A-Za-z0-9_\-.~:@+]{1,200})?$/.test(k) || /^(ivas|aliqs)\/[0-9]{2,10}$/.test(k) || k === "config/escritorio") && v && typeof v === "object") docs[k] = v; });
       if (dbLocal) await dbLocal.importar(docs); else await importaNuvem(dbNuvem, docs);
       const n = Object.keys(docs).filter(k => k.includes("/notas/")).length;
       bk(`Backup importado: ${n} nota${n === 1 ? "" : "s"}. Notas com o mesmo número foram atualizadas.`, true);
@@ -2069,6 +2134,9 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       db = d;
       savedEl.hidden = false;
       render();
+      db.collection("config").onSnapshot(snap => {
+        snap.docs.forEach(x => { if (x.id === "escritorio") escritorio = x.data() || {}; });
+      }, () => {});
       db.collection("aliqs").onSnapshot(snap => {
         const m = {};
         snap.docs.forEach(x => { const v = x.data(); if (v && v.ncm && v.interna != null) m[v.ncm] = v.interna; });
