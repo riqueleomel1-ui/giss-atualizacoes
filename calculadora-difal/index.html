@@ -164,6 +164,20 @@ details > summary { cursor: pointer; padding: 14px 16px; font-family: var(--font
 .mes-head .tot { font-family: var(--font-data); color: var(--money); font-variant-numeric: tabular-nums; font-size: 1.05rem; }
 .mes-acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px; background: var(--bg); }
 .mes-acts button { font-size: 0.85rem; padding: 6px 12px; }
+.mes-acts button.ativo { background: var(--accent-soft); }
+.dare { margin: 0 16px 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface, var(--bg)); display: grid; gap: 12px; font-size: 0.88rem; }
+.dare-intro { margin: 0; color: var(--muted, inherit); }
+.dare-guia { display: grid; gap: 4px; }
+.dare-guia h4 { margin: 0 0 4px; font-size: 0.92rem; }
+.dare-lin { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.dare-lin .rot { color: var(--muted, inherit); }
+.dare-lin .val { font-family: var(--font-data); overflow-wrap: anywhere; }
+.dare-nota { margin: 0; font-size: 0.8rem; color: var(--muted, inherit); }
+.dare .btn { display: inline-block; text-decoration: none; }
+.dados-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.dados-form label { display: grid; gap: 4px; font-size: 0.82rem; }
+.dados-form input { padding: 6px 8px; min-width: 160px; }
+@media (max-width: 560px) { .dare-lin { grid-template-columns: minmax(0, 1fr) auto; } .dare-lin .rot { grid-column: 1 / -1; } }
 .srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding: 10px 16px; border-top: 1px solid var(--line); align-items: start; }
 .srow .info { min-width: 0; overflow-wrap: anywhere; }
 .srow .info .sub { font-family: var(--font-body); }
@@ -238,6 +252,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       <button class="primary" id="saveBtn" type="button" hidden>Salvar cálculos</button>
       <button id="copyBtn" type="button">Copiar resumo para enviar ao escritório</button>
       <button id="xlsBtn" type="button">Exportar Excel</button>
+      <button id="domBtn" type="button">XML para o Domínio</button>
       <button id="clearBtn" type="button">Limpar tudo</button>
       <span class="msg" id="copyMsg" hidden></span>
     </div>
@@ -341,6 +356,9 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
         <li><strong>Substituição tributária</strong>: em cada produto escolha "Não tem ST" (calcula DIFAL), "ST retida pelo fornecedor" (nada a pagar) ou "ST a recolher na entrada" (antecipação do art. 426-A, quando o fornecedor não reteve). A calculadora sugere pela nota: ICMS-ST destacado na nota = retida; CST 10, 30, 70, 201, 202 ou 203 sem ST destacado = a recolher. CST 60 e CSOSN 500 indicam ST paga antes, no estado do fornecedor: não valem para SP, e o produto segue a lista da ST de SP. Confira se o NCM está na ST em SP.</li>
         <li><strong>Lista da ST em SP</strong>: quando o NCM de um produto aparece na lista da ST em SP na data de entrada e a nota não traz ST retida, o produto fica marcado como "ST a confirmar" e a nota entra no aviso do topo. Confirme em cada produto (ST a recolher ou não é ST). Enquanto não confirmar, o produto é calculado como DIFAL. Se a nota indica ST pelo CST, mas o NCM saiu da ST em SP, o produto vai para DIFAL, com aviso.</li>
         <li><strong>Alíquota de SP</strong>: quando o NCM aparece numa alíquota diferente de 18% no RICMS/SP (7% no art. 53-A, 12% no art. 54, 20% no art. 54-A, 25% no art. 55, 30% no art. 55-A), o produto fica com "Alíquota a conferir" e você escolhe usar a alíquota do benefício ou manter. A escolha fica lembrada para o NCM. Também entram os 12% do art. 54, V (máquinas e equipamentos industriais e implementos agrícolas da Resolução SF 4/1998 e produtos de informática e automação da Resolução SF 31/2008), que só valem quando a descrição bate e, nas máquinas, o uso é industrial ou agrícola; e os 12% de aves e gado em pé, carnes do abate (art. 54, II) e pedra e areia (art. 54, IV). Ficam fora: transporte e fornecimento de alimentação, que são serviços e não aparecem como produto da NF-e; combustíveis, que já vêm com ST ou ICMS monofásico; e as reduções de base do Anexo II, que a SEFAZ-SP não aceita no DIFAL do Simples (RC 33.592/2026): nelas o DIFAL usa a alíquota cheia.</li>
+        <li><strong>XML para o Domínio</strong>: gera uma cópia do XML de cada nota (as notas lidas do XML) com o DIFAL e a alíquota interna de SP no grupo ICMSUFDest de cada produto e o ICMS-ST a recolher nos campos de ST do item (o grupo do ICMS passa para o que aceita ST, por exemplo CST 00 vira 10 e CSOSN 102 vira 202). O XML original não é alterado. Como o conteúdo muda, a assinatura digital da cópia deixa de valer: use só para importar no Domínio.</li>
+        <li><strong>Arquivo da DeSTDA (SEDIF)</strong>: nos cálculos salvos, cada mês tem o botão que gera o arquivo-texto no leiaute do Ato COTEPE/ICMS 47/2015 para importar no SEDIF-SN (Escrituração, Importar arquivo). O DIFAL de uso e consumo vai como situação 1, o de máquinas e equipamentos como 0, o da revenda como 3 (antecipação sem encerramento) e o ICMS-ST na entrada como 2.</li>
+        <li><strong>Dados para o DARE</strong>: mostra CNPJ, IE, referência, vencimento, valor, código de serviço e observações de cada guia, com botão para copiar, e abre o DARE avulso no site da SEFAZ-SP, que é onde sai a guia com código de barras e Pix.</li>
         <li><strong>Uso e consumo</strong>: compra para uso e consumo ou ativo não tem ST a recolher (a ST cobre a revenda), mas tem DIFAL, mesmo de produto da lista da ST e mesmo quando o fornecedor do Simples usa CSOSN 400. Nota de venda para consumidor final entra como uso e consumo: no XML, quando o fornecedor marca indFinal = 1; no PDF, quando a natureza da operação diz "consumidor final". A nota mostra o motivo e um botão para trocar para revenda.</li>
         <li><strong>ICMS-ST a recolher</strong>: (valor + frete, seguro e outras + IPI - desconto) x (1 + IVA-ST) x alíquota de SP - ICMS próprio (valor x alíquota da nota). Com fornecedor do regime normal usa o IVA-ST ajustado: (1 + IVA original) x (1 - alíq. nota) / (1 - alíq. SP) - 1; com fornecedor do Simples (CSOSN), o original. O IVA-ST digitado fica lembrado para o NCM. Para empresa do Simples, o prazo é o mesmo do DIFAL, em guia separada (código 063-2).</li>
         <li>Produtos com <strong>substituição tributária</strong> e compras de fornecedores de SP não geram DIFAL e aparecem marcados.</li>
@@ -532,6 +550,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       id: uid(), chave,
       numero: txt(ide, "nNF"), emitente: txt(emit, "xNome"), ufEmit, ufDest,
       destCnpj: (txt(dest, "CNPJ") || txt(dest, "CPF")).replace(/\D/g, ""), destNome: txt(dest, "xNome"),
+      destIE: txt(dest, "IE"), destCMun: txt(first(dest, "enderDest"), "cMun"), xml: xmlText,
       data: isoToDate(txt(ide, "dhEmi") || txt(ide, "dEmi")),
       finalidade: txt(ide, "indFinal") === "1" ? "uso" : "revenda", items,
       avisos: [], usoMotivo: txt(ide, "indFinal") === "1" ? 'no XML o fornecedor marcou a venda como "consumidor final" (indFinal = 1)' : "",
@@ -1137,6 +1156,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     sb.hidden = !db;
     sb.disabled = !naoSalvas || salvando;
     document.getElementById("xlsBtn").disabled = !notes.length;
+    document.getElementById("domBtn").disabled = !notes.some(n => n.xml);
     document.getElementById("guias").innerHTML = grupos().map(g => `
       <div class="guia"><span class="lbl">DARE · vence ${fmtDate(g.venc)}</span><span class="val">DIFAL ${brl.format(g.total)}</span>${g.st > 0 ? `<span class="st">ICMS-ST ${brl.format(round2(g.st))}</span>` : ""}
       <span style="font-size:.8rem;color:var(--muted)">${g.notas.length} nota${g.notas.length > 1 ? "s" : ""}</span></div>`).join("");
@@ -1493,7 +1513,8 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const d = dateToIso(n.data);
     return {
       numero: n.numero || "", chave: n.chave || "", emitente: n.emitente || "", ufEmit: n.ufEmit || "",
-      destCnpj: n.destCnpj, destNome: n.destNome || "", fonte: n.fonte || (n.chave ? "xml" : "manual"),
+      destCnpj: n.destCnpj, destNome: n.destNome || "", destIE: n.destIE || "", destCMun: n.destCMun || "", fonte: n.fonte || (n.chave ? "xml" : "manual"),
+      xml: n.xml && n.xml.length < 600000 ? n.xml : "",
       data: d, mes: d ? d.slice(0, 7) : "", vencimento: dateToIso(vencimento(n.data)),
       finalidade: n.finalidade, vNF: n.vNF == null ? null : n.vNF, vST: n.vST || 0, vII: n.vII || 0,
       avisos: n.avisos || [], difal: noteDifal(n), st: noteST(n), salvoEm: new Date().toISOString(),
@@ -1504,6 +1525,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     return {
       id: uid(), saveId: id, savedCnpj: cnpj, salvo: true,
       numero: d.numero, chave: d.chave, emitente: d.emitente, ufEmit: d.ufEmit, destCnpj: d.destCnpj || cnpj, destNome: d.destNome,
+      destIE: d.destIE || "", destCMun: d.destCMun || "", xml: d.xml || "",
       fonte: d.fonte === "pdf" ? "pdf" : undefined, data: isoToDate(d.data), finalidade: d.finalidade || "revenda",
       vNF: d.vNF == null ? null : d.vNF, vST: d.vST || 0, vII: d.vII || 0, avisos: (d.avisos || []).slice(),
       items: (d.items || []).map(it => mkItem(Object.assign({}, it)))
@@ -1521,10 +1543,11 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     let gravadas = 0;
     try {
       const emps = new Map();
-      ok.forEach(n => emps.set(n.destCnpj, n.destNome));
-      for (const [cnpj, nome] of emps) {
+      ok.forEach(n => { const e = emps.get(n.destCnpj) || { nome: n.destNome, ie: "", cMun: "" }; e.nome = n.destNome; e.ie = e.ie || n.destIE || ""; e.cMun = e.cMun || n.destCMun || ""; emps.set(n.destCnpj, e); });
+      for (const [cnpj, x] of emps) {
         const atual = empresas.find(e => e.cnpj === cnpj);
-        if (!atual || atual.nome !== nome) await db.doc("empresas/" + cnpj).set({ cnpj, nome, atualizadoEm: new Date().toISOString() });
+        const ie = (atual && atual.ie) || x.ie, cMun = (atual && atual.cMun) || x.cMun;
+        if (!atual || atual.nome !== x.nome || (atual.ie || "") !== ie || (atual.cMun || "") !== cMun) await db.doc("empresas/" + cnpj).set({ cnpj, nome: x.nome, ie, cMun, atualizadoEm: new Date().toISOString() });
       }
       for (const n of ok) {
         const id = n.saveId || n.chave || novoId();
@@ -1587,7 +1610,12 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
           <button type="button" data-abrir-mes="${m}">${xs.length > 1 ? `Abrir as ${xs.length} na calculadora` : "Abrir na calculadora"}</button>
           <button type="button" data-copiar-mes="${m}">Copiar resumo</button>
           <button type="button" data-excel-mes="${m}">Exportar Excel</button>
+          <button type="button" data-dominio-mes="${m}">XML para o Domínio</button>
+          <button type="button" data-destda-mes="${m}">Arquivo da DeSTDA (SEDIF)</button>
+          <button type="button" data-dare-mes="${m}"${dareAberto === m ? ' class="ativo"' : ""}>${dareAberto === m ? "Fechar dados do DARE" : "Dados para o DARE"}</button>
         </div>
+        ${pedeDados === m ? formDados(emp, xs.map(x => deDoc(x.id, selCnpj, x.d))) : ""}
+        ${dareAberto === m ? painelDare(emp, m, xs.map(x => deDoc(x.id, selCnpj, x.d))) : ""}
         ${xs.map(x => `<div class="srow">
           <div class="info">NF ${esc(x.d.numero || "s/n")} · ${esc(x.d.emitente || "Fornecedor")} (${esc(x.d.ufEmit || "-")})
             <span class="sub">Entrada ${fmtDate(isoToDate(x.d.data))}${x.d.fonte === "pdf" ? " · lida do PDF" : x.d.fonte === "manual" ? " · lançamento manual" : ""} · salva em ${fmtDate(isoToDate((x.d.salvoEm || "").slice(0, 10)))}</span></div>
@@ -1632,6 +1660,38 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       const lista = notasSalvas.filter(x => (x.d.mes || "") === ds.excelMes).map(x => deDoc(x.id, selCnpj, x.d));
       exportarExcel(lista, emp ? emp.nome : "", `DIFAL ${emp ? emp.nome : selCnpj} ${ds.excelMes || "sem data"}`, b);
     }
+    else if (ds.dominioMes !== undefined) {
+      const emp = empresas.find(x => x.cnpj === selCnpj);
+      const lista = notasSalvas.filter(x => (x.d.mes || "") === ds.dominioMes).map(x => deDoc(x.id, selCnpj, x.d));
+      exportarDominio(lista, `XML Dominio ${emp ? emp.nome : selCnpj} ${ds.dominioMes || "sem data"}`, b);
+    }
+    else if (ds.dareMes !== undefined) { dareAberto = dareAberto === ds.dareMes ? null : ds.dareMes; renderSaved(); }
+    else if (ds.copia !== undefined) {
+      try { await navigator.clipboard.writeText(ds.copia); b.textContent = "Copiado"; setTimeout(() => { b.textContent = "Copiar"; }, 1500); }
+      catch (err) { b.textContent = ds.copia; }
+    }
+    else if (ds.destdaMes !== undefined || ds.salvaDados !== undefined) {
+      const m = ds.destdaMes !== undefined ? ds.destdaMes : ds.salvaDados;
+      const emp = empresas.find(x => x.cnpj === selCnpj); if (!emp) return;
+      const lista = notasSalvas.filter(x => (x.d.mes || "") === m).map(x => deDoc(x.id, selCnpj, x.d));
+      if (ds.salvaDados !== undefined) {
+        const ie = (document.getElementById("dIE").value || "").replace(/\D/g, ""), cMun = (document.getElementById("dMun").value || "").replace(/\D/g, "");
+        if (!ie || cMun.length !== 7) { document.getElementById("dMsg").hidden = false; return; }
+        b.disabled = true;
+        try { await db.doc("empresas/" + emp.cnpj).set(Object.assign({}, emp, { ie, cMun, atualizadoEm: new Date().toISOString() })); emp.ie = ie; emp.cMun = cMun; }
+        catch (err) { showMsg(["Não foi possível salvar os dados da empresa."]); b.disabled = false; return; }
+        pedeDados = null;
+      }
+      const dd = dadosEmp(emp, lista);
+      if (!dd.ie || dd.cMun.length !== 7) { pedeDados = m; renderSaved(); return; }
+      if (m === "") { showMsg(["Essas notas estão sem data de entrada. Abra na calculadora, coloque a data e salve de novo."]); return; }
+      const r = linhasDestda(Object.assign({}, emp, dd), m, lista);
+      const res = await baixarArquivo(new Blob([latin1(r.texto)], { type: "text/plain" }), `DeSTDA ${emp.cnpj} ${m.replace("-", "")}.txt`);
+      renderSaved();
+      if (res !== "cancelled") showMsg([r.total > 0
+        ? `Arquivo da DeSTDA de ${nomeMes(m)} gerado: DIFAL ${brl.format(round2(r.sit[0] + r.sit[1] + r.sit[3]))}${r.sit[2] > 0 ? `, ICMS-ST na entrada ${brl.format(r.sit[2])}` : ""}. No SEDIF-SN, use Escrituração > Importar arquivo.`
+        : `Não há valores em ${nomeMes(m)}. Em SP a DeSTDA é dispensada quando não há valores a declarar no mês (Portaria CAT 23/2016, art. 1º, § 5º); o arquivo foi gerado "sem dados" caso você queira transmitir mesmo assim.`]);
+    }
     else if (ds.excluir) { confirmaExcluir = ds.excluir; renderSaved(); }
     else if (ds.excluirNao !== undefined) { confirmaExcluir = null; renderSaved(); }
     else if (ds.excluirSim) {
@@ -1644,11 +1704,213 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     }
   });
   document.getElementById("saveBtn").addEventListener("click", () => { if (db && !salvando) salvar(); });
+  document.getElementById("domBtn").addEventListener("click", e => {
+    const dests = Array.from(new Set(notes.map(n => n.destNome).filter(Boolean)));
+    exportarDominio(notes, `XML Dominio ${dests.length === 1 ? dests[0] : "notas"} ${dateToIso(new Date())}`, e.currentTarget);
+  });
   document.getElementById("xlsBtn").addEventListener("click", e => {
     const dests = Array.from(new Set(notes.map(n => n.destNome).filter(Boolean)));
     const meses = Array.from(new Set(notes.map(n => dateToIso(n.data).slice(0, 7)).filter(Boolean))).sort();
     exportarExcel(notes, dests.length === 1 ? dests[0] : "", `DIFAL ${dests.length === 1 ? dests[0] : "notas"} ${meses.join(" a ") || dateToIso(new Date())}`, e.currentTarget);
   });
+
+  /* ---------- XML para o Domínio ---------- */
+  const NS_NFE = "http://www.portalfiscal.inf.br/nfe";
+  const f2 = x => (Math.round((x + Number.EPSILON) * 100) / 100).toFixed(2);
+  const f4 = x => Number(x || 0).toFixed(4);
+  function xmlParaDominio(n) {
+    const doc = new DOMParser().parseFromString(n.xml, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("XML ilegível");
+    const inf = first(doc, "infNFe");
+    const dets = Array.from(inf.getElementsByTagNameNS("*", "det"));
+    if (dets.length !== n.items.length) throw new Error("a nota tem itens diferentes do XML");
+    const ns = inf.namespaceURI || NS_NFE;
+    const el = (nome, valor) => { const e = doc.createElementNS(ns, nome); if (valor != null) e.textContent = valor; return e; };
+    const filho = (pai, nome) => Array.from(pai.children).find(c => c.localName === nome) || null;
+    function poe(pai, nome, valor, depoisDe) {
+      let e = filho(pai, nome);
+      if (e) { e.textContent = valor; return e; }
+      e = el(nome, valor);
+      let ref = null;
+      for (const d of depoisDe) { const r = filho(pai, d); if (r) ref = r; }
+      if (ref) ref.after(e); else pai.appendChild(e);
+      return e;
+    }
+    function renomeia(g, novo) {
+      const e = el(novo);
+      while (g.firstChild) e.appendChild(g.firstChild);
+      g.replaceWith(e);
+      return e;
+    }
+    /* valores de DIFAL por item, acertando o centavo no último item para fechar com o total da nota */
+    const brutos = n.items.map(it => itemDifal(n, it));
+    const difs = brutos.map(v => round2(v));
+    const tot = noteDifal(n), dif = round2(tot - difs.reduce((a, b) => a + b, 0));
+    if (dif) { const k = difs.map((v, i) => v > 0 ? i : -1).filter(i => i >= 0).pop(); if (k != null) difs[k] = round2(difs[k] + dif); }
+    let somaST = 0, somaBCST = 0, somaDifal = 0;
+    dets.forEach((det, i) => {
+      const it = n.items[i], imp = filho(det, "imposto");
+      if (!imp) return;
+      /* ICMS-ST a recolher na entrada */
+      const x = itemST(n, it);
+      const icms = filho(imp, "ICMS");
+      if (x && !x.falta && icms && icms.firstElementChild) {
+        let g = icms.firstElementChild;
+        const t = g.localName;
+        const mapa = { ICMS00: ["ICMS10", "CST", "10"], ICMS20: ["ICMS70", "CST", "70"], ICMS40: ["ICMS90", "CST", "90"], ICMS41: ["ICMS90", "CST", "90"], ICMS50: ["ICMS90", "CST", "90"], ICMS51: ["ICMS90", "CST", "90"],
+          ICMSSN101: ["ICMSSN201", "CSOSN", "201"], ICMSSN102: ["ICMSSN202", "CSOSN", "202"], ICMSSN103: ["ICMSSN203", "CSOSN", "203"], ICMSSN300: ["ICMSSN202", "CSOSN", "202"], ICMSSN400: ["ICMSSN203", "CSOSN", "203"] };
+        if (mapa[t]) { g = renomeia(g, mapa[t][0]); const c = filho(g, mapa[t][1]); if (c) c.textContent = mapa[t][2]; }
+        const ant = ["orig", "CST", "CSOSN", "modBC", "vBC", "pRedBC", "pICMS", "vICMS", "vBCFCP", "pFCP", "vFCP"];
+        poe(g, "modBCST", "4", ant);
+        poe(g, "pMVAST", f4(x.iva * 100), ant.concat("modBCST"));
+        poe(g, "vBCST", f2(x.bc), ant.concat("modBCST", "pMVAST", "pRedBCST"));
+        poe(g, "pICMSST", f4(it.interna), ant.concat("modBCST", "pMVAST", "pRedBCST", "vBCST"));
+        poe(g, "vICMSST", f2(x.v), ant.concat("modBCST", "pMVAST", "pRedBCST", "vBCST", "pICMSST"));
+        somaST += round2(x.v); somaBCST += round2(x.bc);
+      }
+      /* DIFAL e alíquota interna de SP (grupo ICMSUFDest) */
+      const velho = filho(imp, "ICMSUFDest"); if (velho) velho.remove();
+      if (!itemStatus(n, it) && it.interna > it.inter) {
+        const g = el("ICMSUFDest");
+        [["vBCUFDest", f2(base(it, n.finalidade))], ["vBCFCPUFDest", "0.00"], ["pFCPUFDest", "0.0000"], ["pICMSUFDest", f4(it.interna)], ["pICMSInter", Number(it.inter).toFixed(2)],
+         ["pICMSInterPart", "100.0000"], ["vFCPUFDest", "0.00"], ["vICMSUFDest", f2(difs[i])], ["vICMSUFRemet", "0.00"]].forEach(([k, v]) => g.appendChild(el(k, v)));
+        const depois = Array.from(imp.children).find(c => ["IS", "IBSCBS"].includes(c.localName));
+        if (depois) depois.before(g); else imp.appendChild(g);
+        somaDifal += difs[i];
+      }
+    });
+    const tt = first(inf, "ICMSTot");
+    if (tt) {
+      const antes = ["vBC", "vICMS", "vICMSDeson"];
+      poe(tt, "vFCPUFDest", "0.00", antes);
+      poe(tt, "vICMSUFDest", f2(somaDifal), antes.concat("vFCPUFDest"));
+      poe(tt, "vICMSUFRemet", "0.00", antes.concat("vFCPUFDest", "vICMSUFDest"));
+      if (somaST) {
+        const ordem = antes.concat("vFCPUFDest", "vICMSUFDest", "vICMSUFRemet", "vFCP");
+        poe(tt, "vBCST", f2(num(txt(tt, "vBCST")) + somaBCST), ordem);
+        poe(tt, "vST", f2(num(txt(tt, "vST")) + somaST), ordem.concat("vBCST"));
+      }
+    }
+    const xmlTxt = new XMLSerializer().serializeToString(doc);
+    return (/^\s*<\?xml/.test(xmlTxt) ? "" : '<?xml version="1.0" encoding="UTF-8"?>') + xmlTxt;
+  }
+  let jszipPromise = null;
+  const carregaJsZip = () => jszipPromise || (jszipPromise = carregaScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js").catch(e => { jszipPromise = null; throw e; }));
+  async function exportarDominio(lista, nome, botao) {
+    const comXml = lista.filter(n => n.xml), semXml = lista.filter(n => !n.xml);
+    const avisos = [];
+    if (!comXml.length) { showMsg([lista.length ? "Nenhuma dessas notas tem o XML guardado. O arquivo para o Domínio só sai das notas lidas do XML; carregue os XMLs de novo e salve." : "Não há notas."]); return; }
+    const txtOrig = botao ? botao.textContent : "";
+    if (botao) { botao.disabled = true; botao.textContent = "Gerando..."; }
+    try {
+      const arqs = [];
+      comXml.forEach(n => {
+        try { arqs.push([`NF ${n.numero || "sn"} ${n.chave || n.id}.xml`, xmlParaDominio(n)]); }
+        catch (e) { avisos.push(`NF ${n.numero || "s/n"}: não foi possível gerar (${e.message}).`); }
+      });
+      if (semXml.length) avisos.push(`${semXml.length} nota${semXml.length > 1 ? "s ficaram" : " ficou"} de fora porque não ${semXml.length > 1 ? "vieram" : "veio"} do XML: ${semXml.map(n => "NF " + (n.numero || "s/n")).join(", ")}.`);
+      if (!arqs.length) { showMsg(avisos); return; }
+      let blob, arq;
+      if (arqs.length === 1) { blob = new Blob([arqs[0][1]], { type: "application/xml" }); arq = arqs[0][0]; }
+      else {
+        await carregaJsZip();
+        const z = new JSZip(); arqs.forEach(([k, v]) => z.file(k, v));
+        blob = await z.generateAsync({ type: "blob" }); arq = nome + ".zip";
+      }
+      const r = await baixarArquivo(blob, arq.replace(/[\\/:*?"<>|]+/g, "-"));
+      if (r !== "cancelled") avisos.unshift(`${arqs.length} XML${arqs.length > 1 ? "s" : ""} para o Domínio gerado${arqs.length > 1 ? "s" : ""}${arqs.length > 1 ? " (arquivo .zip)" : ""}. O DIFAL e a alíquota de SP vão no grupo ICMSUFDest de cada produto; o ICMS-ST a recolher vai nos campos de ST do item. Confira a importação no Domínio.`);
+      showMsg(avisos);
+    } catch (e) { showMsg(["Não foi possível gerar os XMLs. Confira a internet e tente de novo."].concat(avisos)); }
+    finally { if (botao) { botao.disabled = false; botao.textContent = txtOrig; } }
+  }
+
+  /* ---------- DeSTDA (SEDIF-SN) ---------- */
+  function linhasDestda(emp, mes, lista) {
+    const [a, m] = mes.split("-").map(Number);
+    const ini = `01${String(m).padStart(2, "0")}${a}`;
+    const fim = `${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}${String(m).padStart(2, "0")}${a}`;
+    const sit = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    lista.forEach(n => {
+      const d = noteDifal(n);
+      if (d > 0) sit[n.finalidade === "ativo" ? 0 : n.finalidade === "uso" ? 1 : 3] += d;
+      sit[2] += noteST(n);
+    });
+    Object.keys(sit).forEach(k => sit[k] = round2(sit[k]));
+    const total = round2(sit[0] + sit[1] + sit[2] + sit[3]);
+    const v = x => x > 0 ? x.toFixed(2).replace(".", ",") : "";
+    const limpa = s => String(s || "").replace(/[|\r\n]/g, " ").trim();
+    const L = [];
+    L.push(["0000", "LFPD", ini, fim, limpa(emp.nome).slice(0, 255), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
+    L.push(["0001", "0"]);
+    L.push(["0030", "1", "7", "9", "9", "1", "1", "1", "1", "1", "9", "1", "1", "0", "1", total > 0 ? "0" : "1", "1", "1"]);
+    L.push(["0990", "4"]);
+    const g = [["G001", total > 0 ? "0" : "1"], ["G020", total > 0 ? "2" : "9", ini, fim]];
+    if (total > 0) {
+      g.push(["G600", v(total), "", v(total)]);
+      [0, 1, 2, 3].forEach(k => { if (sit[k] > 0) g.push(["G605", String(k), v(sit[k]), "", v(sit[k])]); });
+    }
+    g.push(["G990", String(g.length + 1)]);
+    L.push(...g);
+    const regs = L.map(r => r[0]).concat("9001", "9900", "9990", "9999");
+    const cont = new Map(); regs.forEach(r => cont.set(r, (cont.get(r) || 0) + 1));
+    const tipos = Array.from(cont.keys());
+    cont.set("9900", tipos.length);
+    const b9 = [["9001", "0"]].concat(tipos.map(t => ["9900", t, String(cont.get(t))]));
+    b9.push(["9990", String(b9.length + 2)]);
+    L.push(...b9);
+    L.push(["9999", String(L.length + 1)]);
+    return { texto: L.map(r => "|" + r.join("|") + "|").join("\r\n") + "\r\n", sit, total };
+  }
+  function latin1(s) {
+    const out = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); out[i] = c < 256 ? c : 63; }
+    return out;
+  }
+
+  /* ---------- dados do DARE ---------- */
+  const DARE_URL = "https://www4.fazenda.sp.gov.br/DareICMS/DareAvulso";
+  let dareAberto = null, pedeDados = null;
+  function formDados(emp, ns) {
+    const dd = dadosEmp(emp, ns);
+    return `<div class="dare">
+      <p class="dare-intro">Para gerar o arquivo da DeSTDA faltam dados de ${esc(emp.nome)}. Quando a nota vem do XML eles são pegos sozinhos; aqui é só uma vez por empresa.</p>
+      <div class="dados-form">
+        <label>Inscrição estadual<input id="dIE" inputmode="numeric" value="${esc(dd.ie)}"></label>
+        <label>Código IBGE do município (7 números; Guarulhos é 3518800)<input id="dMun" inputmode="numeric" maxlength="7" value="${esc(dd.cMun)}"></label>
+        <button type="button" class="primary" data-salva-dados="${pedeDados}">Salvar e gerar o arquivo</button>
+      </div>
+      <p class="dare-nota" id="dMsg" hidden style="color:var(--warn)">Preencha a inscrição estadual e o código do município com 7 números.</p>
+    </div>`;
+  }
+  function painelDare(emp, m, ns) {
+    const difal = round2(ns.reduce((s, n) => s + noteDifal(n), 0)), st = round2(ns.reduce((s, n) => s + noteST(n), 0));
+    const venc = vencimento(ns[0].data);
+    const ref = m ? m.slice(5, 7) + "/" + m.slice(0, 4) : "";
+    const ie = dadosEmp(emp, ns).ie;
+    const nfs = ns.map(n => n.numero || "s/n").join(", ");
+    const lin = (rot, val, copia) => `<div class="dare-lin"><span class="rot">${rot}</span><span class="val">${esc(val)}</span>${copia ? `<button type="button" class="link" data-copia="${esc(copia)}">Copiar</button>` : ""}</div>`;
+    const guia = (tit, valor, cod, codNovo, obs) => valor > 0 ? `<div class="dare-guia"><h4>${tit}</h4>
+        ${lin("Valor", brl.format(valor), valor.toFixed(2).replace(".", ","))}
+        ${lin("Código de serviço", cod, cod.slice(0, 5))}
+        <p class="dare-nota">Receita 063-2. Se o sistema não mostrar esse código, use o código novo ${codNovo}.</p>
+        ${lin("Observações", obs, obs)}</div>` : "";
+    return `<div class="dare">
+      <p class="dare-intro">A guia com código de barras e Pix só sai no site da SEFAZ-SP. Abra o DARE avulso e preencha com os dados abaixo (cada campo tem o botão Copiar). Se for pagar depois do vencimento, o próprio site calcula juros e multa.</p>
+      <div class="dare-guia"><h4>Contribuinte</h4>
+        ${lin("CNPJ", fmtCnpj(emp.cnpj), emp.cnpj)}
+        ${lin("Inscrição estadual", ie || "não informada", ie || "")}
+        ${lin("Referência", ref, ref)}
+        ${lin("Vencimento", venc ? fmtDate(venc) : "-", venc ? fmtDate(venc) : "")}</div>
+      ${guia("Guia do DIFAL", difal, "06301 - Diferencial de Alíquota Simples Nacional", "04602", `DIFAL entradas ${ref} - NF ${nfs}`)}
+      ${guia("Guia do ICMS-ST na entrada (art. 426-A)", st, "06303 - Recolhimento Antecipado Subst. Tributária Simples Nacional", "14603", `ICMS-ST art. 426-A entradas ${ref} - NF ${ns.filter(n => noteST(n) > 0).map(n => n.numero || "s/n").join(", ")}`)}
+      ${difal <= 0 && st <= 0 ? `<p class="dare-nota">Nada a recolher neste mês.</p>` : ""}
+      <div class="row"><a class="btn" href="${DARE_URL}" target="_blank" rel="noopener">Abrir o DARE na SEFAZ-SP</a></div>
+    </div>`;
+  }
+  function dadosEmp(emp, ns) {
+    const n1 = ns.find(n => n.destIE) || {}, n2 = ns.find(n => n.destCMun) || {};
+    return { ie: String(emp.ie || n1.destIE || "").replace(/\D/g, ""), cMun: String(emp.cMun || n2.destCMun || "").replace(/\D/g, "") };
+  }
 
   /* Banco local: usado quando a calculadora é aberta como arquivo no computador.
      Guarda os documentos no IndexedDB do navegador (ou no localStorage, se o IndexedDB falhar)
