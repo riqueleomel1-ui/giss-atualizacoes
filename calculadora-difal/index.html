@@ -1842,13 +1842,17 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const L = [];
     L.push(["0000", "LFPD", ini, fim, limpa(emp.nome).slice(0, 255), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
     L.push(["0001", "0"]);
-    L.push(["0030", "1", "7", "9", "9", "1", "1", "1", "1", "1", "9", "1", "1", "0", "1", total > 0 ? "0" : "1", "1", "1"]);
+    /* o SEDIF-SN exige os campos 06 a 18 do 0030 vazios */
+    L.push(["0030", "1", "7", "9", "9", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
     L.push(["0990", "4"]);
-    const g = [["G001", total > 0 ? "0" : "1"], ["G020", total > 0 ? "2" : "9", ini, fim]];
-    if (total > 0) {
-      g.push(["G600", v(total), "", v(total)]);
-      [0, 1, 2, 3].forEach(k => { if (sit[k] > 0) g.push(["G605", String(k), v(sit[k]), "", v(sit[k])]); });
-    }
+    /* regras do SEDIF-SN: G605 sempre 4 vezes (situações 0 a 3), um G620 e quatro G625 da UF (tipos 0 a 3);
+       os campos "valor nas notas" ficam vazios e só o valor declarado é preenchido */
+    const z = x => x > 0 ? x.toFixed(2).replace(".", ",") : "0,00";
+    const g = [["G001", "0"], ["G020", "2", ini, fim]];
+    g.push(["G600", "", "", z(total)]);
+    [0, 1, 2, 3].forEach(k => g.push(["G605", String(k), "", "", z(sit[k])]));
+    g.push(["G620", "1", "0", "", "", "0,00", ""]);
+    [0, 1, 2, 3].forEach(k => g.push(["G625", "SP", String(k), "", "", "0,00"]));
     g.push(["G990", String(g.length + 1)]);
     L.push(...g);
     const regs = L.map(r => r[0]).concat("9001", "9900", "9990", "9999");
