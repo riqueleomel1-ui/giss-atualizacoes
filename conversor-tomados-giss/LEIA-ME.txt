@@ -1,0 +1,19 @@
+CONVERSOR DE TOMADOS GISS (Guarulhos)
+
+Como usar
+1. Baixe o ConversorTomadosGISS.exe uma vez so e deixe na area de trabalho (ou numa pasta da rede).
+2. Clique duas vezes nele. O conversor abre no navegador.
+3. Toda vez que abrir o programa ou apertar F5 no navegador, ele pega sozinho a versao mais nova.
+   A versao aparece no topo da pagina ("Versao dd/mm/aaaa hh:mm").
+
+Na primeira vez o Windows pode avisar "O Windows protegeu o computador":
+clique em "Mais informacoes" e depois em "Executar assim mesmo".
+
+As inscricoes municipais e os ajustes ficam guardados no navegador de cada computador.
+Os XMLs das notas sao lidos so no computador de quem usa: nada e enviado para a internet.
+
+Como funciona
+O programa abre o endereco http://127.0.0.1:47322 no navegador e, a cada abertura ou F5, baixa a pagina
+index.html desta pasta do GitHub. Sem internet, usa a ultima versao baixada.
+Depois de 12 horas sem uso ele fecha sozinho.
+O codigo do programa esta em fonte-do-programa (Go).
