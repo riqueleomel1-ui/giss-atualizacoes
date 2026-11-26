@@ -161,7 +161,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       <p>Transforma os XMLs da NFS-e Nacional recebidos pelos clientes no arquivo de importação de Serviços Tomados da prefeitura.</p>
     </div>
     <div class="badges">
-      <span class="badge">Versão 26/11/2026 14:49</span>
+      <span class="badge">Versão 26/11/2026 15:54</span>
       <span class="badge">Layout v1.00 &middot; manual CST 2.4</span>
       <span class="badge">Os XMLs são lidos só neste navegador</span>
     </div>
@@ -469,6 +469,8 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
     if (lista.length === 1) return lista[0];
     // sinonimos comuns nas notas (Mercado Envios, fretes): puxa para as atividades de carga
     if (/envio|shipping|frete|entrega/i.test(desc || "")) desc = (desc || "") + " carga frete rodoviario";
+    // representacao comercial por comissao sobre vendas: representante do comercio de mercadorias em geral
+    if (/comiss|vendas?\b/i.test(desc || "") && /representa/i.test(xItem || "")) desc = (desc || "") + " mercadorias geral";
     const rd = raizes(desc), rx = raizes(xItem);
     let best = null, bs = -Infinity, bestX = lista[0], bx = 0;
     for (const a of lista) {
