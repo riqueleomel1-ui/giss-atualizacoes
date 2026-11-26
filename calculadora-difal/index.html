@@ -1869,8 +1869,9 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     L.push(["0001", "0"]);
     const e = emp.end || {}, r = emp.resp || {}, o = escritorio || {};
     L.push(["0005", limpa(r.nome), r.cod || "205", dig(r.cpf), dig(e.cep), limpa(e.end), limpa(e.num), limpa(e.compl), limpa(e.bairro), "", "", dig(e.fone).slice(-12), "", limpa(e.email)]);
-    /* o SEDIF-SN exige os campos 06 a 18 do 0030 vazios */
-    L.push(["0030", "1", "7", "9", "9", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
+    /* o SEDIF-SN exige os campos 06 a 18 do 0030 vazios; ISS e ICMS em "Sim, modo simplificado" (0):
+       com ICMS "Não obrigado a escriturar" (9) o SEDIF trava na transmissão (Access violation no 0030) */
+    L.push(["0030", "1", "7", "0", "0", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
     if (o.nome) L.push(["0100", limpa(o.nome), "900", dig(o.cnpj), dig(o.cpf), limpa(o.crc), dig(o.cep), limpa(o.end), limpa(o.num), limpa(o.compl), limpa(o.bairro), o.uf || "SP", dig(o.cMun), "", "", dig(o.fone).slice(-12), "", limpa(o.email)]);
     L.push(["0990", String(L.length + 1)]);
     /* regras do SEDIF-SN: G605 sempre 4 vezes (situações 0 a 3), um G620 e quatro G625 da UF (tipos 0 a 3);
