@@ -178,6 +178,9 @@ details > summary { cursor: pointer; padding: 14px 16px; font-family: var(--font
 .dados-form label { display: grid; gap: 4px; font-size: 0.82rem; }
 .dados-form input, .dados-form select { padding: 6px 8px; min-width: 160px; font: inherit; }
 .form-tit { margin: 4px 0 -4px; font-size: 0.88rem; }
+.dados-form label small { font-weight: 400; opacity: 0.7; }
+.dados-form label.longo input { border-color: var(--warn); outline: 2px solid var(--warn); }
+.dados-form label.longo { color: var(--warn); }
 .form-esc summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
 @media (max-width: 560px) { .dare-lin { grid-template-columns: minmax(0, 1fr) auto; } .dare-lin .rot { grid-column: 1 / -1; } }
 .srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding: 10px 16px; border-top: 1px solid var(--line); align-items: start; }
@@ -1615,6 +1618,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
           <button type="button" data-excel-mes="${m}">Exportar Excel</button>
           <button type="button" data-dominio-mes="${m}">XML para o Domínio</button>
           <button type="button" data-destda-mes="${m}">Arquivo da DeSTDA (SEDIF)</button>
+          <button type="button" data-edita-dados="${m}"${pedeDados === m ? ' class="ativo"' : ""}>Dados da DeSTDA</button>
           <button type="button" data-dare-mes="${m}"${dareAberto === m ? ' class="ativo"' : ""}>${dareAberto === m ? "Fechar dados do DARE" : "Dados para o DARE"}</button>
         </div>
         ${pedeDados === m ? formDados(emp, xs.map(x => deDoc(x.id, selCnpj, x.d))) : ""}
@@ -1647,6 +1651,10 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
 
   selEmp.addEventListener("change", () => { selCnpj = selEmp.value; selMes = ""; abrirEmpresa(); });
   selMesEl.addEventListener("change", () => { selMes = selMesEl.value; confirmaExcluir = null; renderSaved(); });
+  savedBody.addEventListener("input", e => {
+    const i = e.target;
+    if (i.matches && i.matches("input[data-lim]")) i.closest("label").classList.toggle("longo", i.value.length > Number(i.dataset.lim));
+  });
   savedBody.addEventListener("click", async e => {
     const b = e.target.closest("button"); if (!b) return;
     const ds = b.dataset;
@@ -1668,6 +1676,8 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       const lista = notasSalvas.filter(x => (x.d.mes || "") === ds.dominioMes).map(x => deDoc(x.id, selCnpj, x.d));
       exportarDominio(lista, `XML Dominio ${emp ? emp.nome : selCnpj} ${ds.dominioMes || "sem data"}`, b);
     }
+    else if (ds.editaDados !== undefined) { pedeDados = pedeDados === ds.editaDados ? null : ds.editaDados; renderSaved(); }
+    else if (ds.fechaDados !== undefined) { pedeDados = null; renderSaved(); }
     else if (ds.dareMes !== undefined) { dareAberto = dareAberto === ds.dareMes ? null : ds.dareMes; renderSaved(); }
     else if (ds.copia !== undefined) {
       try { await navigator.clipboard.writeText(ds.copia); b.textContent = "Copiado"; setTimeout(() => { b.textContent = "Copiar"; }, 1500); }
@@ -1686,6 +1696,8 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
         const msgEl = document.getElementById("dMsg");
         if (falta.length) { msgEl.textContent = "Preencha: " + falta.join(", ") + "."; msgEl.hidden = false; return; }
         const esc2 = { nome: val("oNome"), cpf: dig(val("oCpf")), crc: val("oCrc"), cnpj: dig(val("oCnpj")), cep: dig(val("oCep")), end: val("oEnd"), num: val("oNum"), compl: val("oCompl"), bairro: val("oBairro"), uf: "SP", cMun: dig(val("oMun")), fone: val("oFone"), email: val("oEmail") };
+        const falta2 = esc2.nome ? longos(esc2, ["nome", "crc", "end", "num", "compl", "bairro", "fone", "email"]).map(t => "contador: " + t) : [];
+        if (falta2.length) { msgEl.textContent = "Corrija " + falta2.join(", ") + "."; msgEl.hidden = false; return; }
         b.disabled = true;
         try {
           await db.doc("empresas/" + emp.cnpj).set(Object.assign({}, emp, novo, { atualizadoEm: new Date().toISOString() }));
@@ -1852,13 +1864,13 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const v = x => x > 0 ? x.toFixed(2).replace(".", ",") : "";
     const limpa = s => String(s || "").replace(/[|\r\n]/g, " ").trim();
     const L = [];
-    L.push(["0000", "LFPD", ini, fim, limpa(emp.nome).slice(0, 255), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
+    L.push(["0000", "LFPD", ini, fim, limpa(emp.nome).slice(0, 60), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
     L.push(["0001", "0"]);
     const e = emp.end || {}, r = emp.resp || {}, o = escritorio || {};
-    L.push(["0005", limpa(r.nome), r.cod || "205", dig(r.cpf), dig(e.cep), limpa(e.end), limpa(e.num), limpa(e.compl), limpa(e.bairro), "", "", dig(e.fone), "", limpa(e.email)]);
+    L.push(["0005", limpa(r.nome), r.cod || "205", dig(r.cpf), dig(e.cep), limpa(e.end), limpa(e.num), limpa(e.compl), limpa(e.bairro), "", "", dig(e.fone).slice(-12), "", limpa(e.email)]);
     /* o SEDIF-SN exige os campos 06 a 18 do 0030 vazios */
     L.push(["0030", "1", "7", "9", "9", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
-    if (o.nome) L.push(["0100", limpa(o.nome), "900", dig(o.cnpj), dig(o.cpf), limpa(o.crc), dig(o.cep), limpa(o.end), limpa(o.num), limpa(o.compl), limpa(o.bairro), o.uf || "SP", dig(o.cMun), "", "", dig(o.fone), "", limpa(o.email)]);
+    if (o.nome) L.push(["0100", limpa(o.nome), "900", dig(o.cnpj), dig(o.cpf), limpa(o.crc), dig(o.cep), limpa(o.end), limpa(o.num), limpa(o.compl), limpa(o.bairro), o.uf || "SP", dig(o.cMun), "", "", dig(o.fone).slice(-12), "", limpa(o.email)]);
     L.push(["0990", String(L.length + 1)]);
     /* regras do SEDIF-SN: G605 sempre 4 vezes (situações 0 a 3), um G620 e quatro G625 da UF (tipos 0 a 3);
        os campos "valor nas notas" ficam vazios e só o valor declarado é preenchido */
@@ -1893,45 +1905,48 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
   function formDados(emp, ns) {
     const dd = dadosEmp(emp, ns), e = dd.end, r = dd.resp, o = Object.assign({ nome: "", cnpj: "", cpf: "", crc: "", cep: "", end: "", num: "", compl: "", bairro: "", uf: "SP", cMun: "", fone: "", email: "" }, escritorio);
     const falta = faltaDados(dd);
-    const inp = (id, rot, v, extra = "") => `<label>${rot}<input id="${id}" value="${esc(v || "")}" ${extra}></label>`;
+    const inp = (id, rot, v, extra = "", lim = 0) => {
+      const longo = lim && String(v || "").length > lim;
+      return `<label${longo ? ' class="longo"' : ""}>${rot}${lim ? ` <small>(até ${lim})</small>` : ""}<input id="${id}" value="${esc(v || "")}" ${extra}${lim ? ` data-lim="${lim}"` : ""}></label>`;
+    };
     return `<div class="dare">
-      <p class="dare-intro">Para a DeSTDA o SEDIF pede os dados do contribuinte e do responsável (registro 0005)${falta.length ? `. Falta: ${esc(falta.join(", "))}` : ""}. O que veio do XML já está preenchido; é só uma vez por empresa.</p>
+      <p class="dare-intro">Dados que vão no arquivo da DeSTDA (registros 0005 e 0100). Você pode corrigir qualquer campo aqui; o que veio do XML já aparece preenchido e fica salvo para os próximos meses.${falta.length ? `<br><strong style="color:var(--warn)">Corrija: ${esc(falta.join(", "))}.</strong>` : ""}</p>
       <div class="dados-form">
         ${inp("dIE", "Inscrição estadual", dd.ie, 'inputmode="numeric"')}
         ${inp("dMun", "Código IBGE do município (Guarulhos: 3518800)", dd.cMun, 'inputmode="numeric" maxlength="7"')}
       </div>
       <h4 class="form-tit">Responsável pela empresa</h4>
       <div class="dados-form">
-        ${inp("dRNome", "Nome", r.nome)}
+        ${inp("dRNome", "Nome", r.nome, "", 60)}
         ${inp("dRCpf", "CPF", r.cpf, 'inputmode="numeric"')}
         <label>Qualificação<select id="dRCod">${COD_ASSIN.map(([c, t]) => `<option value="${c}"${c === r.cod ? " selected" : ""}>${c} - ${t}</option>`).join("")}</select></label>
       </div>
       <h4 class="form-tit">Endereço da empresa</h4>
       <div class="dados-form">
         ${inp("dCep", "CEP", e.cep, 'inputmode="numeric" maxlength="9"')}
-        ${inp("dEnd", "Logradouro", e.end)}
-        ${inp("dNum", "Número", e.num, 'style="min-width:70px;width:90px"')}
-        ${inp("dCompl", "Complemento", e.compl)}
-        ${inp("dBairro", "Bairro", e.bairro)}
-        ${inp("dFone", "Telefone", e.fone, 'inputmode="tel"')}
-        ${inp("dEmail", "E-mail", e.email, 'type="email"')}
+        ${inp("dEnd", "Logradouro", e.end, "", 40)}
+        ${inp("dNum", "Número", e.num, 'style="min-width:70px;width:90px"', 6)}
+        ${inp("dCompl", "Complemento", e.compl, "", 50)}
+        ${inp("dBairro", "Bairro", e.bairro, "", 20)}
+        ${inp("dFone", "Telefone (DDD + número)", e.fone, 'inputmode="tel"')}
+        ${inp("dEmail", "E-mail", e.email, 'type="email"', 60)}
       </div>
       <details class="form-esc"${escritorio.nome ? "" : " open"}><summary>Contador (registro 0100, vale para todas as empresas)</summary>
       <div class="dados-form">
-        ${inp("oNome", "Nome do contador", o.nome)}
+        ${inp("oNome", "Nome do contador", o.nome, "", 60)}
         ${inp("oCpf", "CPF do contador", o.cpf, 'inputmode="numeric"')}
-        ${inp("oCrc", "CRC", o.crc)}
+        ${inp("oCrc", "CRC", o.crc, "", 10)}
         ${inp("oCnpj", "CNPJ do escritório", o.cnpj, 'inputmode="numeric"')}
         ${inp("oCep", "CEP", o.cep, 'inputmode="numeric" maxlength="9"')}
-        ${inp("oEnd", "Logradouro", o.end)}
-        ${inp("oNum", "Número", o.num, 'style="min-width:70px;width:90px"')}
-        ${inp("oCompl", "Complemento", o.compl)}
-        ${inp("oBairro", "Bairro", o.bairro)}
+        ${inp("oEnd", "Logradouro", o.end, "", 40)}
+        ${inp("oNum", "Número", o.num, 'style="min-width:70px;width:90px"', 6)}
+        ${inp("oCompl", "Complemento", o.compl, "", 50)}
+        ${inp("oBairro", "Bairro", o.bairro, "", 20)}
         ${inp("oMun", "Código IBGE do município", o.cMun, 'inputmode="numeric" maxlength="7"')}
         ${inp("oFone", "Telefone", o.fone, 'inputmode="tel"')}
-        ${inp("oEmail", "E-mail", o.email, 'type="email"')}
+        ${inp("oEmail", "E-mail", o.email, 'type="email"', 60)}
       </div></details>
-      <div class="row"><button type="button" class="primary" data-salva-dados="${pedeDados}">Salvar e gerar o arquivo</button></div>
+      <div class="row"><button type="button" class="primary" data-salva-dados="${pedeDados}">Salvar e gerar o arquivo</button><button type="button" data-fecha-dados="1">Cancelar</button></div>
       <p class="dare-nota" id="dMsg" hidden style="color:var(--warn)"></p>
     </div>`;
   }
@@ -1967,6 +1982,12 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const resp = Object.assign({ nome: "", cpf: "", cod: "205" }, emp.resp || {});
     return { ie: dig(emp.ie || n1.destIE), cMun: dig(emp.cMun || n2.destCMun), end, resp };
   }
+  /* tamanhos máximos do leiaute (registros 0005 e 0100) */
+  const LIM = { nome: 60, end: 40, num: 6, compl: 50, bairro: 20, fone: 12, email: 60, crc: 10 };
+  const NOME_CAMPO = { nome: "nome", end: "logradouro", num: "número", compl: "complemento", bairro: "bairro", fone: "telefone", email: "e-mail", crc: "CRC" };
+  function longos(o, campos) {
+    return campos.filter(k => String((k === "fone" ? dig(o[k]) : o[k]) || "").length > LIM[k]).map(k => `${NOME_CAMPO[k]} com mais de ${LIM[k]} caracteres`);
+  }
   function faltaDados(dd) {
     const f = [];
     if (!dd.ie) f.push("inscrição estadual");
@@ -1977,6 +1998,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     if (!dd.end.end) f.push("endereço");
     if (!dd.end.num) f.push("número");
     if (!dd.end.bairro) f.push("bairro");
+    f.push(...longos(dd.resp, ["nome"]), ...longos(dd.end, ["end", "num", "compl", "bairro", "fone", "email"]));
     return f;
   }
   let escritorio = {};
