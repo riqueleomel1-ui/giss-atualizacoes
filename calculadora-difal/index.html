@@ -1689,7 +1689,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
       const lista = notasSalvas.filter(x => (x.d.mes || "") === m).map(x => deDoc(x.id, selCnpj, x.d));
       if (ds.salvaDados !== undefined) {
         const val = id => (document.getElementById(id).value || "").trim();
-        const novo = { ie: dig(val("dIE")), cMun: dig(val("dMun")),
+        const novo = { nomeDestda: val("dNomeEmp").replace(/\s+/g, " "), nomeEmp: val("dNomeEmp").replace(/\s+/g, " "), ie: dig(val("dIE")), cMun: dig(val("dMun")),
           resp: { nome: val("dRNome"), cpf: dig(val("dRCpf")), cod: val("dRCod") },
           end: { cep: dig(val("dCep")), end: val("dEnd"), num: val("dNum"), compl: val("dCompl"), bairro: val("dBairro"), fone: val("dFone"), email: val("dEmail") } };
         const falta = faltaDados(novo);
@@ -1700,6 +1700,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
         if (falta2.length) { msgEl.textContent = "Corrija " + falta2.join(", ") + "."; msgEl.hidden = false; return; }
         b.disabled = true;
         try {
+          delete novo.nomeEmp;
           await db.doc("empresas/" + emp.cnpj).set(Object.assign({}, emp, novo, { atualizadoEm: new Date().toISOString() }));
           Object.assign(emp, novo);
           if (esc2.nome) { await db.doc("config/escritorio").set(esc2); escritorio = esc2; }
@@ -1864,7 +1865,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const v = x => x > 0 ? x.toFixed(2).replace(".", ",") : "";
     const limpa = s => String(s || "").replace(/[|\r\n]/g, " ").trim();
     const L = [];
-    L.push(["0000", "LFPD", ini, fim, limpa(emp.nome).slice(0, 60), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
+    L.push(["0000", "LFPD", ini, fim, limpa(emp.nomeEmp || emp.nomeDestda || emp.nome).slice(0, 60), emp.cnpj, "SP", String(emp.ie || "").replace(/\D/g, ""), String(emp.cMun || ""), "", "", "", "2000", "0", "30", "Brasil", "", "", "", ""]);
     L.push(["0001", "0"]);
     const e = emp.end || {}, r = emp.resp || {}, o = escritorio || {};
     L.push(["0005", limpa(r.nome), r.cod || "205", dig(r.cpf), dig(e.cep), limpa(e.end), limpa(e.num), limpa(e.compl), limpa(e.bairro), "", "", dig(e.fone).slice(-12), "", limpa(e.email)]);
@@ -1912,6 +1913,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     return `<div class="dare">
       <p class="dare-intro">Dados que vão no arquivo da DeSTDA (registros 0005 e 0100). Você pode corrigir qualquer campo aqui; o que veio do XML já aparece preenchido e fica salvo para os próximos meses.${falta.length ? `<br><strong style="color:var(--warn)">Corrija: ${esc(falta.join(", "))}.</strong>` : ""}</p>
       <div class="dados-form">
+        ${inp("dNomeEmp", "Nome empresarial (igual ao das declarações anteriores no SEDIF)", dd.nomeEmp, 'style="min-width:340px"', 60)}
         ${inp("dIE", "Inscrição estadual", dd.ie, 'inputmode="numeric"')}
         ${inp("dMun", "Código IBGE do município (Guarulhos: 3518800)", dd.cMun, 'inputmode="numeric" maxlength="7"')}
       </div>
@@ -1980,7 +1982,7 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
     const n1 = ns.find(n => n.destIE) || {}, n2 = ns.find(n => n.destCMun) || {}, n3 = ns.find(n => n.destEnd && n.destEnd.cep) || {};
     const end = Object.assign({ end: "", num: "", compl: "", bairro: "", cep: "", fone: "", email: "" }, n3.destEnd || {}, emp.end || {});
     const resp = Object.assign({ nome: "", cpf: "", cod: "205" }, emp.resp || {});
-    return { ie: dig(emp.ie || n1.destIE), cMun: dig(emp.cMun || n2.destCMun), end, resp };
+    return { nomeEmp: String(emp.nomeDestda || emp.nome || "").trim(), ie: dig(emp.ie || n1.destIE), cMun: dig(emp.cMun || n2.destCMun), end, resp };
   }
   /* tamanhos máximos do leiaute (registros 0005 e 0100) */
   const LIM = { nome: 60, end: 40, num: 6, compl: 50, bairro: 20, fone: 12, email: 60, crc: 10 };
@@ -1990,6 +1992,8 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; }
   }
   function faltaDados(dd) {
     const f = [];
+    if (!dd.nomeEmp) f.push("nome empresarial");
+    else if (dd.nomeEmp.length > 60) f.push("nome empresarial com mais de 60 caracteres");
     if (!dd.ie) f.push("inscrição estadual");
     if (dd.cMun.length !== 7) f.push("código do município");
     if (!dd.resp.nome) f.push("nome do responsável");
