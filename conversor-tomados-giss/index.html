@@ -160,7 +160,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       <p>Transforma os XMLs da NFS-e Nacional recebidos pelos clientes no arquivo de importação de Serviços Tomados da prefeitura.</p>
     </div>
     <div class="badges">
-      <span class="badge">Versão 24/11/2026 11:20</span>
+      <span class="badge">Versão 26/11/2026 14:10</span>
       <span class="badge">Layout v1.00 &middot; manual CST 2.4</span>
       <span class="badge">Os XMLs são lidos só neste navegador</span>
     </div>
@@ -875,6 +875,8 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       if (pcv && pcv.calculado && vaiPisCofins(pcv, n)) n.avisos.push("alíquota ou valor de PIS/COFINS calculado pela base (faltava no XML)");
       if (pcv && pcv.fonte === "prestador" && vaiPisCofins(pcv, n)) n.avisos.push("PIS/COFINS pelas alíquotas informadas para o prestador (" + fmtPct(pcv.pPis) + " e " + fmtPct(pcv.pCof) + ")");
       if (pcv && pcv.zerado && pisCofinsRetidos(n.pc.tpRet).pis + pisCofinsRetidos(n.pc.tpRet).cofins) n.avisos.push("XML marca PIS/COFINS retido sem valor: vai sem retenção de PIS/COFINS");
+      if (n.vRetCSLL > 0 && !vaiPisCofins(pcv, n)) n.avisos.push("CSLL retida de " + fmtBRL(n.vRetCSLL) + " não vai no arquivo: o GISS só aceita a CSLL junto com o grupo de PIS/COFINS (" + (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3" ? "prestador do Simples" : "a nota não traz alíquota e valor de PIS e COFINS") + ")");
+      if (n.pc && ["3", "7", "8", "9"].includes(n.pc.tpRet) && !(n.vRetCSLL > 0)) n.avisos.push("XML marca CSLL retida sem valor de CSLL: vai sem retenção de CSLL");
       if (n.issCalculado) n.avisos.push("ISS calculado pela alíquota (não veio pronto no XML)");
       if (n.cPaisPrest) n.avisos.push("serviço prestado no exterior: município de prestação não informado");
       const e = n.prest.end;
@@ -967,9 +969,11 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
 
   // NT-007: os codigos 1 (retido) e 2 (nao retido) foram extintos. Converte para a tabela nova,
   // que combina PIS, COFINS e CSLL: 0 nenhum, 3 todos, 4 PIS+COFINS, 5 PIS, 6 COFINS, 7 COFINS+CSLL, 8 CSLL, 9 PIS+CSLL.
+  // O GISS confere o tipo com os valores retidos: CSLL no tipo exige ValorCsll e vice-versa
+  // ("Valor retido de CSLL informado para tipo de retencao sem CSLL"). Por isso a CSLL entra pelo valor retido.
   function tpRetNovo(tp, csllValor) {
     const r = pisCofinsRetidos(tp);
-    const csll = csllValor || ["3", "7", "8", "9"].includes(tp);
+    const csll = !!csllValor;
     return ["0", "5", "6", "4", "8", "9", "7", "3"][(r.pis ? 1 : 0) + (r.cofins ? 2 : 0) + (csll ? 4 : 0)];
   }
 
@@ -1005,13 +1009,13 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
     if (!pc || pc.zerado || !n) return false;
     if (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3") return false;
     const r = pisCofinsRetidos(pc.tpRet);
-    if (!(r.pis || r.cofins)) return false;
+    if (!(r.pis || r.cofins || n.vRetCSLL > 0)) return false;
     return pc.pPis > 0 && pc.pCof > 0 && pc.vPis > 0 && pc.vCof > 0;
   }
   function motivoSemPisCofins(pc, n) {
     if (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3") return "Simples: não vai no arquivo";
     const r = pisCofinsRetidos(pc.tpRet);
-    if (!(r.pis || r.cofins)) return "sem retenção: não vai no arquivo";
+    if (!(r.pis || r.cofins || n.vRetCSLL > 0)) return "sem retenção: não vai no arquivo";
     return "valor zerado: não vai no arquivo";
   }
   function blocoTrib(n) {
@@ -1067,7 +1071,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
           T("ValorCofins", ret.cofins && pcOk ? pos(pcv.vCof) : null),
           T("ValorInss", pos(n.vRetCP)),
           T("ValorIr", pos(n.vRetIRRF)),
-          T("ValorCsll", pos(n.vRetCSLL)),
+          T("ValorCsll", pcOk ? pos(n.vRetCSLL) : null),
           T("ValTotTributos", pos(valTot)),
           T("ValorIss", m2(n.semAliq ? 0 : (n.vISS || 0))),
           T("Aliquota", n.semAliq || n.aliqOmitida ? null : aliquotaTxt(n.pAliq)),
