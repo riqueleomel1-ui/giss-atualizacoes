@@ -149,6 +149,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
 .prose p { margin: 0 0 10px; }
 .map td:first-child { font-family: var(--f-mono); font-size: 0.84rem; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  .notas-lista { white-space: normal; max-width: 11rem; margin-left: auto; text-align: right; line-height: 1.35; }
 </style>
 </head>
 <body>
@@ -160,7 +161,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       <p>Transforma os XMLs da NFS-e Nacional recebidos pelos clientes no arquivo de importação de Serviços Tomados da prefeitura.</p>
     </div>
     <div class="badges">
-      <span class="badge">Versão 26/11/2026 14:18</span>
+      <span class="badge">Versão 26/11/2026 14:23</span>
       <span class="badge">Layout v1.00 &middot; manual CST 2.4</span>
       <span class="badge">Os XMLs são lidos só neste navegador</span>
     </div>
@@ -210,7 +211,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       <div class="actions" id="ativ-actions"></div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>Item nacional</th><th>Serviço</th><th class="num">Notas</th><th>Item em Guarulhos</th><th>Código de atividade no GISS</th><th>Alíquota em Guarulhos</th></tr></thead>
+          <thead><tr><th>Item nacional</th><th>Serviço e prestadores</th><th class="num">Notas (NFS-e)</th><th>Item em Guarulhos</th><th>Código de atividade no GISS</th><th>Alíquota em Guarulhos</th></tr></thead>
           <tbody id="ativ-body"></tbody>
         </table>
       </div>
@@ -226,7 +227,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>Prestador</th><th>Serviço</th><th class="num">Notas</th><th>Na nota</th><th>Local a usar</th><th>Resultado no arquivo</th></tr></thead>
+          <thead><tr><th>Prestador</th><th>Serviço</th><th class="num">Notas (NFS-e)</th><th>Na nota</th><th>Local a usar</th><th>Resultado no arquivo</th></tr></thead>
           <tbody id="loc-body"></tbody>
         </table>
       </div>
@@ -1306,7 +1307,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       const aviso = esc === "nota" && difere(G) ? '<span class="chip err">confira o local</span>' : "";
       return "<tr><td>" + h(trunc(G.prest.nome, 40)) + '<span class="sub mono">' + fmtDoc(G.prest.doc) + "</span></td>" +
         '<td><span class="mono">' + G.it + '</span><span class="sub">' + h(trunc(descItem(G.it), 60)) + "</span></td>" +
-        '<td class="num">' + G.notas.length + "</td><td>" + naNota + "</td><td>" + sel + aviso + "</td><td>" + res + "</td></tr>";
+        '<td class="num">' + G.notas.length + listaNotas(G.notas) + "</td><td>" + naNota + "</td><td>" + sel + aviso + "</td><td>" + res + "</td></tr>";
     }).join("");
   }
   function selModo(P) {
@@ -1352,15 +1353,23 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
     }).join("");
   }
 
+  // Numeros das NFS-e de uma linha, com o prestador ao passar o mouse
+  function listaNotas(notas) {
+    const ord = notas.slice().sort((a, b) => (a.prest.nome || "").localeCompare(b.prest.nome || "") || Number(a.nNFSe) - Number(b.nNFSe));
+    const max = 12, mostra = ord.slice(0, max);
+    return '<span class="sub notas-lista">' + mostra.map((n) => '<span class="mono" title="' + h((n.prest.nome || "") + " - " + fmtBRL(n.vServ || 0)) + '">' + h(n.nNFSe) + "</span>").join(", ") +
+      (ord.length > max ? " e mais " + (ord.length - max) : "") + "</span>";
+  }
   function renderAtividades() {
     const itens = new Map();
     for (const n of S.notes.values()) {
       if (n.ignorada || !/^\d{6}$/.test(n.cTribNac)) continue;
       if (n.tom && !incluido(n.tom.doc)) continue;
       const k = rowKey(n);
-      if (!itens.has(k)) itens.set(k, { k, n, c: n.cTribNac, auto: itemGuarulhosAuto(n), it: itemG(n), desc: n.xTribNac || n.desc, qtd: 0, semAliq: 0, gru: 0 });
+      if (!itens.has(k)) itens.set(k, { k, n, c: n.cTribNac, auto: itemGuarulhosAuto(n), it: itemG(n), desc: n.xTribNac || n.desc, qtd: 0, semAliq: 0, gru: 0, notas: [] });
       const I = itens.get(k);
       I.qtd++;
+      I.notas.push(n);
       if (n.pAliqXml == null) I.semAliq++;
       if (n.aliqTrocada) I.gru++;
     }
@@ -1397,7 +1406,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       const lei = G_ITENS[it] && G_ITENS[it][1] != null ? G_ITENS[it][1] : null, esp = ai.a && ai.a[1] > 0 ? ai.a[1] : null;
       const ph = (esp != null ? esp : lei != null ? lei : 0).toFixed(2).replace(".", ",");
       const usos = [i.gru ? i.gru + " nota(s) com ISS devido a Guarulhos" : "", i.semAliq ? i.semAliq + " sem alíquota no XML" : ""].filter(Boolean).join(" &middot; ");
-      return '<tr><td class="mono">' + nac + '<span class="sub">nacional ' + i.c.slice(0, 2) + "." + i.c.slice(2, 4) + "." + i.c.slice(4) + "</span></td><td>" + h(trunc(i.desc, 80)) + '</td><td class="num">' + i.qtd + "</td>" +
+      return '<tr><td class="mono">' + nac + '<span class="sub">nacional ' + i.c.slice(0, 2) + "." + i.c.slice(2, 4) + "." + i.c.slice(4) + "</span></td><td>" + h(trunc(i.desc, 80)) + '<span class="sub">' + h(trunc(Array.from(new Set(i.notas.map((n) => n.prest.nome || ""))).join(", "), 90)) + '</span></td><td class="num">' + i.qtd + listaNotas(i.notas) + "</td>" +
         "<td>" + selItem + '<span class="im-src">' + dicaItem + "</span></td>" +
         "<td>" + selAtiv + campo + '<span class="im-src">' + dicaAtiv + "</span></td>" +
         '<td><input class="im-input" style="width:5.5rem" id="aliqg-' + h(i.k) + '" data-aliqg="' + it + '" inputmode="decimal" maxlength="5" placeholder="' + ph + '" value="' + h(cfg.aliqG[it] || "") + '" aria-label="Alíquota de Guarulhos do item ' + it + '"> %' +
