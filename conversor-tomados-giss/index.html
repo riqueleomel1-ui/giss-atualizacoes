@@ -160,7 +160,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       <p>Transforma os XMLs da NFS-e Nacional recebidos pelos clientes no arquivo de importação de Serviços Tomados da prefeitura.</p>
     </div>
     <div class="badges">
-      <span class="badge">Versão 26/11/2026 14:10</span>
+      <span class="badge">Versão 26/11/2026 14:18</span>
       <span class="badge">Layout v1.00 &middot; manual CST 2.4</span>
       <span class="badge">Os XMLs são lidos só neste navegador</span>
     </div>
@@ -875,7 +875,8 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       if (pcv && pcv.calculado && vaiPisCofins(pcv, n)) n.avisos.push("alíquota ou valor de PIS/COFINS calculado pela base (faltava no XML)");
       if (pcv && pcv.fonte === "prestador" && vaiPisCofins(pcv, n)) n.avisos.push("PIS/COFINS pelas alíquotas informadas para o prestador (" + fmtPct(pcv.pPis) + " e " + fmtPct(pcv.pCof) + ")");
       if (pcv && pcv.zerado && pisCofinsRetidos(n.pc.tpRet).pis + pisCofinsRetidos(n.pc.tpRet).cofins) n.avisos.push("XML marca PIS/COFINS retido sem valor: vai sem retenção de PIS/COFINS");
-      if (n.vRetCSLL > 0 && !vaiPisCofins(pcv, n)) n.avisos.push("CSLL retida de " + fmtBRL(n.vRetCSLL) + " não vai no arquivo: o GISS só aceita a CSLL junto com o grupo de PIS/COFINS (" + (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3" ? "prestador do Simples" : "a nota não traz alíquota e valor de PIS e COFINS") + ")");
+      if (n.vRetCSLL > 0 && !vaiPisCofins(pcv, n)) n.avisos.push("CSLL retida de " + fmtBRL(n.vRetCSLL) + " não vai no arquivo: o GISS só aceita a CSLL junto com o grupo de PIS/COFINS (" + (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3" ? "prestador do Simples" : pcv && !pcv.zerado && !cstTributavel(pcv.cst) ? "a nota traz CST " + pcv.cst + (pcv.cst === "00" ? " (nenhum)" : "") + " de PIS/COFINS, e o GISS recusa valores com esse CST" : "a nota não traz alíquota e valor de PIS e COFINS") + ")");
+      if (pcv && !pcv.zerado && pcv.fonte !== "prestador" && !cstTributavel(pcv.cst) && (pcv.vPis > 0 || pcv.vCof > 0) && !(n.vRetCSLL > 0) && (pisCofinsRetidos(pcv.tpRet).pis || pisCofinsRetidos(pcv.tpRet).cofins)) n.avisos.push("PIS/COFINS retido não vai no arquivo: a nota traz CST " + pcv.cst + (pcv.cst === "00" ? " (nenhum)" : "") + ", e o GISS recusa valores com esse CST");
       if (n.pc && ["3", "7", "8", "9"].includes(n.pc.tpRet) && !(n.vRetCSLL > 0)) n.avisos.push("XML marca CSLL retida sem valor de CSLL: vai sem retenção de CSLL");
       if (n.issCalculado) n.avisos.push("ISS calculado pela alíquota (não veio pronto no XML)");
       if (n.cPaisPrest) n.avisos.push("serviço prestado no exterior: município de prestação não informado");
@@ -1005,15 +1006,20 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
   // informou as aliquotas do prestador. O GISS aceita a declaracao sem o grupo, e cada envio extra e risco de recusa.
   // Regras (todas precisam valer): prestador fora do Simples; nota com PIS ou COFINS retido;
   // aliquota e valor de PIS e de COFINS maiores que zero (o GISS trata zero como "nao informado").
+  // CST so 01 a 03 (operacao tributavel): com CST 00 "nenhum" (ou isenta, aliquota zero etc.) o GISS recusa qualquer
+  // valor ("CST de TRIB FED NENHUM com valor informado", NFS-e 7644 da Libra).
+  const cstTributavel = (cst) => /^0[1-3]$/.test(cst || "");
   function vaiPisCofins(pc, n) {
     if (!pc || pc.zerado || !n) return false;
     if (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3") return false;
+    if (!cstTributavel(pc.cst)) return false;
     const r = pisCofinsRetidos(pc.tpRet);
     if (!(r.pis || r.cofins || n.vRetCSLL > 0)) return false;
     return pc.pPis > 0 && pc.pCof > 0 && pc.vPis > 0 && pc.vCof > 0;
   }
   function motivoSemPisCofins(pc, n) {
     if (n.prest.opSimpNac === "2" || n.prest.opSimpNac === "3") return "Simples: não vai no arquivo";
+    if (pc && !pc.zerado && !cstTributavel(pc.cst)) return "CST " + pc.cst + (pc.cst === "00" ? " (nenhum)" : "") + ": não vai no arquivo";
     const r = pisCofinsRetidos(pc.tpRet);
     if (!(r.pis || r.cofins || n.vRetCSLL > 0)) return "sem retenção: não vai no arquivo";
     return "valor zerado: não vai no arquivo";
