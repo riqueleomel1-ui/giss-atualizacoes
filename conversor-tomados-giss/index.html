@@ -161,7 +161,7 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       <p>Transforma os XMLs da NFS-e Nacional recebidos pelos clientes no arquivo de importação de Serviços Tomados da prefeitura.</p>
     </div>
     <div class="badges">
-      <span class="badge">Versão 26/11/2026 14:23</span>
+      <span class="badge">Versão 26/11/2026 14:49</span>
       <span class="badge">Layout v1.00 &middot; manual CST 2.4</span>
       <span class="badge">Os XMLs são lidos só neste navegador</span>
     </div>
@@ -402,6 +402,9 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
   // Quando a aliquota NAO deve ir (o GISS recusa com "Aliquota informada indevidamente"). Devolve o motivo ou "".
   function semAliquota(n) {
     if (modoAliq(n.prest.doc) === "sem") return "marcado por você para este prestador";
+    // Com ISS devido em outra cidade o GISS exige aliquota entre 2% e 5% ate para MEI e ISS nao exigivel
+    // ("Aliquota deve ser entre 2% e 5%"); sem aliquota so com ISS devido a Guarulhos.
+    if (n.cLocIncid !== GUARULHOS) return "";
     if (n.prest.opSimpNac === "2") return "prestador MEI";
     if (exigibilidade(n) !== "1") return "ISS não exigível nesta nota";
     return "";
@@ -853,7 +856,13 @@ details.panel[open] > summary { border-bottom: 1px solid var(--line); }
       else if (n.pAliq == null) n.problemas.push("sem alíquota no XML e sem alíquota de Guarulhos para o item " + (temItem ? itemG(n) : "?") + ": informe na tabela de itens");
       else if (n.aliqPadrao) n.avisos.push("sem alíquota no XML: usada a alíquota de Guarulhos do item " + itemG(n) + " (" + fmtPct(n.pAliq) + ")" + (issRetido(n) ? ". ATENÇÃO: ISS retido, confira o valor" : ""));
       if (n.aliqDerivada) n.avisos.push("alíquota " + fmtPct(n.pAliq) + " deduzida do ISS do XML (a nota não trazia a alíquota)");
-      if (n.pAliq != null && (n.pAliq < 2 || n.pAliq > 5)) n.avisos.push("alíquota " + fmtPct(n.pAliq) + " fora da faixa de 2% a 5% aceita pelo GISS");
+      // O GISS so aceita aliquota de 2% a 5% (NFS-e 6, serie TKKJS): fora disso vai o limite mais proximo, ISS da nota mantido.
+      if (n.pAliq != null && !n.semAliq && !n.aliqOmitida && (n.pAliq < 2 || n.pAliq > 5)) {
+        const antes = n.pAliq;
+        n.pAliq = n.pAliq < 2 ? 2 : 5;
+        n.avisos.push("alíquota " + fmtPct(antes) + " fora da faixa de 2% a 5% aceita pelo GISS: vai " + fmtPct(n.pAliq) + " (o valor do ISS da nota é mantido, " + fmtBRL(n.vISS || 0) + ")");
+      }
+      if (n.prest.opSimpNac === "2" && n.cLocIncid !== GUARULHOS && !n.semAliq) n.avisos.push("prestador MEI com ISS devido em outra cidade: o GISS exige alíquota de 2% a 5%, então vai " + fmtPct(n.pAliq || 0));
       if (temItem && LOCAL_PRESTACAO.test(itemG(n)) && !n.localTomador && n.cLocPrest && n.cLocPrest !== munTomador(n) && !n.cPaisPrest)
         n.avisos.push("serviço com ISS no local da prestação (item " + itemG(n) + "): a nota diz que foi prestado em " + nomeMun(n.cLocPrest) + " e o tomador fica em " + nomeMun(munTomador(n)) + ". Se foi prestado no tomador, troque em Local da prestação");
 
